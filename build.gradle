@@ -10,6 +10,7 @@
     }
 }*/
 
+plugins {
     id 'java'
     id 'eclipse'
     id 'org.springframework.boot' version '2.7.18' // 2.7.x 최신권장
@@ -33,7 +34,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-mustache'
 
-    plugins {
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 
