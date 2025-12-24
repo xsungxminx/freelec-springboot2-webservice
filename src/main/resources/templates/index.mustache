@@ -7,13 +7,15 @@
     <div class="row">
         <div class="col-md-6">
             <a href="/posts/save" role="button" class="btn btn-primary">글 등록</a>
-            {{#userName}}
-                Logged in as: <span id="user">{{userName}}</span>
-                <a href="/logout" class="btn btn-info active" role="button">Logout</a>
+            {{#userName}}   <!-- 머스테치는 다른 언어와 같은 if문(if userName != null등)을 제공하지 않습니다. true/false 여부만 판단할 뿐입니다. 그래서 머스테치에서는 항상 최종값을 넘겨줘야 합니다. -->
+                Logged in as: <span id="user">{{userName}}</span>   <!-- 여기서도 userName 이 있다면 userName을 노출시키도록 구성-->
+                <a href="/logout" class="btn btn-info active" role="button">Logout</a>  <!-- 스프링 시큐리티에서 기본적으로 제공하는 로그아웃 url입니다. 즉, 개발자가 별도로 저 URL에 해당하는 컨트롤러를 만들 필요가 없습니다.   -->
+                                                                                        <!-- securityConfig 클래스에서 URL을 변경할 순 있지만 기본 URL을 사용해도 충분하니 여기서는 그대로 사용합니다.-->
             {{/userName}}
-            {{^userName}}
-                <a href="/oauth2/authorization/google" class="btn btn-success active" role="button">Google Login</a>
-                <a href="/oauth2/authorization/naver" class="btn btn-secondary active" role="button">Naver Login</a>
+            {{^userName}}   <!-- 머스테치에서 해당 값이 존재하지 않는경우 ^를 사용 -->
+                <a href="/oauth2/authorization/google" class="btn btn-success active" role="button">Google Login</a>    <!-- /oauth2/authorization/google 스프링 시크리티에서 기본적으로 제공하는 로그인 URL입니다. 로그아웃URL 마찬가지 별도컨트롤러생성X -->
+                <a href="/oauth2/authorization/naver" class="btn btn-secondary active" role="button">Naver Login</a>    <!--네이버 로그인 URL은 application-oauth.properties에 등록한 redirect-uri값에 맞춰 자동으로 등록  -->
+                                                                                                                        <!--/oauth2/authorization/까지는 고정이고 마지막 Path만 각 소셜 로그인 코드를 사용하면 됩니다. 여기서는 naver가 마지막 Path가 됩니다. -->
             {{/userName}}
         </div>
     </div>
@@ -29,10 +31,10 @@
         </tr>
         </thead>
         <tbody id="tbody">
-        {{#posts}}
+        {{#posts}}               <!--posts라는 List를 순회 합니다. java의 for문과 동일하게 생각하면 된다. -->
             <tr>
-                <td>{{id}}</td>
-                <td><a href="/posts/update/{{id}}">{{title}}</a></td>
+                <td>{{id}}</td>  <!-- List에서 뽑아낸 객체의 필드를 사용 -->
+                <td><a href="/posts/update/{{id}}">{{title}}</a></td>  <!-- title을 클릭하면 해당 게시글의 수정화면으로 이동-->
                 <td>{{author}}</td>
                 <td>{{modifiedDate}}</td>
             </tr>
