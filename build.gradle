@@ -17,6 +17,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-mustache'   // 템플릿 엔진
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'   // 소셜 로그인 등 클라이언트 입장에서 소셜기능 구현 시 필요한 의존성입니다.
     implementation 'org.springframework.session:spring-session-jdbc'
+    implementation 'org.mariadb.jdbc:mariadb-java-client'
 
     runtimeOnly 'com.h2database:h2'
 
