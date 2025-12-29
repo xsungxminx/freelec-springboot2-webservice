@@ -4,7 +4,8 @@ jdk:
 
 branches:       # Travis CI를 어느 브랜치가 푸시될때 수행할지 지정합니다. , 현재옵션은 오직 master 브랜치에 push될 때만 수행합니다.
   only:
-    - master
+    #- master
+    - main
 
 # Travis CI 서버의 Home
 cache:        # 그레이들을 통해 의존성을 받게 되면 이를 해당 디렉토리에 캐시하여, 같은 의존성은 다음 배포 때부터 다시 받지 않도록 설정합니다.
@@ -40,7 +41,8 @@ deploy: # S3로 파일 업로드 혹은 CodeDeploy로 배포 등 외부 서비�
   - provider: codedeploy
     access_key_id: $AWS_ACCESS_KEY # Travis repo settings에 설정된 값
     secret_access_key: $AWS_SECRET_KEY # Travis repo settings에 설정된 값
-    bucket: freelec-springboot-build # S3 버킷
+    #bucket: freelec-springboot-build # S3 버킷
+    bucket: freelec-springboot-build-251229 # S3 버킷
     key: freelec-springboot2-webservice.zip # 빌드 파일을 압축해서 전달
     bundle_type: zip
     application: freelec-springboot2-webservice # 웹 콘솔에서 등록한 CodeDeploy 어플리케이션
