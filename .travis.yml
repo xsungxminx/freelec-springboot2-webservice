@@ -37,6 +37,17 @@ deploy: # S3로 파일 업로드 혹은 CodeDeploy로 배포 등 외부 서비�
     local_dir: deploy # before_deploy에서 생성한 디렉토리  , 앞에서 생성한 deploy 디렉토리를 지정합니다., 해당 위치의 파일들만 S3로 전송합니다.
     wait-until-deployed: true
 
+  - provider: codedeploy
+    access_key_id: $AWS_ACCESS_KEY # Travis repo settings에 설정된 값
+    secret_access_key: $AWS_SECRET_KEY # Travis repo settings에 설정된 값
+    bucket: freelec-springboot-build # S3 버킷
+    key: freelec-springboot2-webservice.zip # 빌드 파일을 압축해서 전달
+    bundle_type: zip
+    application: freelec-springboot2-webservice # 웹 콘솔에서 등록한 CodeDeploy 어플리케이션
+    deployment_group: freelec-springboot2-webservice-group # 웹 콘솔에서 등록한 CodeDeploy 배포 그룹
+    region: ap-northeast-2
+    wait-until-deployed: true
+
 
 # CI 실행 완료시 메일로 알람
 notifications:                    # Travis CI 실행 완료시 자동으로 알람이 가도록 설정
