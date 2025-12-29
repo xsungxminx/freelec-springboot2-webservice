@@ -14,6 +14,30 @@ cache:        # 그레이들을 통해 의존성을 받게 되면 이를 해당 
 
 script: "./gradlew clean build"   # master 브랜치에 푸시되었을 때 수행하는 명령어 입니다., 여기서는 프로젝트 내부에 둔 gradlew을 통해 clean & build를 수행합니다.
 
+before_deploy:    # deploy 명령어가 실행되기전에 수행됩니다. , CodeDeploy는 jar파일은 인식하지 못하므로 Jar + 기타 설정 파일들을 모아 압축(zip)합니다.
+  - zip -r freelec-springboot2-webservice * # 현재 위치의 모든 파일을 freelec-springboot2-webservice 이름으로 압축(zip)합니다., 명령어의 마지막 위치는 본인의 프로젝트 이름이어야 합니다.
+  - mkdir -p deploy # deploy라는 디렉토리를 Travis CI가 실행 중인 위치에서 생성합니다.
+  - mv freelec-springboot2-webservice.zip deploy/freelec-springboot2-webservice.zip # freelec-springboot2-webservice.zip 파일을 deploy/freelec-springboot2-webservice.zip 으로 이동시킵니다.
+  #- cp scripts/*.sh before-deploy/
+  #- cp appspec.yml before-deploy/
+  #- cp build/libs/*.jar before-deploy/
+  #- cd before-deploy && zip -r before-deploy * # before-deploy로 이동후 전체 압축
+  #- cd ../ && mkdir -p deploy # 상위 디렉토리로 이동후 deploy 디렉토리 생성
+  #- mv before-deploy/before-deploy.zip deploy/freelec-springboot2-webservice.zip # deploy로 zip파일 이동
+
+deploy: # S3로 파일 업로드 혹은 CodeDeploy로 배포 등 외부 서비스와 연동될 행위들을 선언합니다.
+  - provider: s3
+    access_key_id: $AWS_ACCESS_KEY # Travis repo settings에 설정된 값
+    secret_access_key: $AWS_SECRET_KEY # Travis repo settings에 설정된 값
+    #bucket: freelec-springboot-build # S3 버킷
+    bucket: freelec-springboot-build-251229 # S3 버킷
+    region: ap-northeast-2
+    skip_cleanup: true
+    acl: private # zip 파일 접근을 private으로
+    local_dir: deploy # before_deploy에서 생성한 디렉토리  , 앞에서 생성한 deploy 디렉토리를 지정합니다., 해당 위치의 파일들만 S3로 전송합니다.
+    wait-until-deployed: true
+
+
 # CI 실행 완료시 메일로 알람
 notifications:                    # Travis CI 실행 완료시 자동으로 알람이 가도록 설정
   email:
