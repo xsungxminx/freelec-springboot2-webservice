@@ -125,7 +125,7 @@
         	  // POST로 파일 다운로드는 fetch보다 form submit이 안정적
         	  var form = document.createElement("form");
         	  form.method = "POST";
-        	  form.action = "<c:url value='/wonit/payroll/result.pdf'/>";
+        	  form.action = "<c:url value='/payroll/result.pdf'/>";
         	  form.target = "_blank";
 
         	  params.split("&").forEach(function(kv){

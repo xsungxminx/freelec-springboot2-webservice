@@ -4,7 +4,6 @@ package egovframework.payLoad.service;
 import egovframework.payLoad.mapper.InsuranceRateBandMapper;
 import egovframework.payLoad.vo.FourInsuranceResult;
 import egovframework.payLoad.vo.InsuranceRateBand;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,15 +14,13 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 
-import javax.annotation.Resource;
 import javax.validation.ValidationException;
 
 @RequiredArgsConstructor
 @Service("fourInsuranceCalcService")
 public class FourInsuranceCalcService {
 
-
-     private InsuranceRateBandMapper insuranceRateBandMapper;
+    private final InsuranceRateBandMapper insuranceRateBandMapper;
 
     private static final BigDecimal TWELVE = new BigDecimal("12");
     private static final BigDecimal TWO    = new BigDecimal("2");

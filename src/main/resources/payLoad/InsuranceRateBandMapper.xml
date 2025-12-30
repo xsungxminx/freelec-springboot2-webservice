@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.payLoad.mapper.InsuranceRateBandMapper">
+
+    <!-- 공통 컬럼 매핑 -->
+    <resultMap id="InsuranceRateBandMap" type="egovframework.payLoad.vo.InsuranceRateBand">
+        <id     property="id"             column="id"/>
+        <result property="insuranceType"  column="insurance_type"/>
+        <result property="companyId"      column="company_id"/>
+        <result property="wageMin"        column="wage_min"/>
+        <result property="wageMax"        column="wage_max"/>
+        <result property="empRate"        column="emp_rate"/>
+        <result property="erRate"         column="er_rate"/>
+        <result property="baseMin"        column="base_min"/>
+        <result property="baseMax"        column="base_max"/>
+        <result property="premiumMax"     column="premium_max"/>
+        <result property="ltcRateOfHealth" column="ltc_rate_of_health"/>
+        <result property="applyFrom"      column="apply_from"/>
+        <result property="applyTo"        column="apply_to"/>
+        <result property="useYn"          column="use_yn"/>
+        <result property="taxDeduction"   column="tax_deduction"/>
+        <result property="localTaxRate"    column="local_tax_rate"/>
+    </resultMap>
+
+    <!-- ==========================
+         4대보험 리스트 조회
+    ========================== -->
+    <select id="fourInstrancelist" resultMap="InsuranceRateBandMap">
+        SELECT
+        id,
+        CASE WHEN insurance_type = 'PENSION' THEN '국민연금'
+        WHEN insurance_type = 'HEALTH' THEN '건강보험'
+        WHEN insurance_type = 'LTC' THEN '장기요양'
+        WHEN insurance_type = 'EMPLOYMENT' THEN '고용보험'
+        ELSE '산재보험'
+        END AS insurance_type,
+        company_id,
+        wage_min,
+        wage_max,
+        emp_rate,
+        er_rate,
+        base_min,
+        base_max,
+        premium_max,
+        ltc_rate_of_health,
+        apply_from,
+        apply_to,
+        use_yn
+        FROM a_insurance_rate_band
+        WHERE 1=1
+        <if test="insuranceType != null and insuranceType != ''">
+            AND insurance_type = #{insuranceType}
+        </if>
+        <if test="companyId != null">
+            AND (company_id = #{companyId} OR company_id IS NULL)
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND use_yn = #{useYn}
+        </if>
+        ORDER BY insurance_type, company_id, wage_min, apply_from DESC
+    </select>
+
+
+
+    <!-- ==========================
+	     4대보험 단건 조회
+	========================== -->
+    <select id="selectById" parameterType="long" resultMap="InsuranceRateBandMap">
+        SELECT
+        id,
+        insurance_type,
+        company_id,
+        wage_min,
+        wage_max,
+        emp_rate,
+        er_rate,
+        base_min,
+        base_max,
+        premium_max,
+        ltc_rate_of_health,
+        apply_from,
+        apply_to,
+        use_yn
+        FROM a_insurance_rate_band
+        WHERE id = #{id}
+    </select>
+
+
+    <!-- ==========================
+          4대보험 급여 계산용 구간 조회
+     ========================== -->
+    <select id="selectApplicableBand"   parameterType="map"  resultType="egovframework.payLoad.vo.InsuranceRateBand">
+        SELECT
+        id,
+        insurance_type AS insuranceType,
+        company_id     AS companyId,
+        wage_min       AS wageMin,
+        wage_max       AS wageMax,
+        emp_rate       AS empRate,
+        er_rate        AS erRate,
+        base_min       AS baseMin,
+        base_max       AS baseMax,
+        premium_max    AS premiumMax,
+        ltc_rate_of_health AS ltcRateOfHealth,
+        tax_deduction  AS taxDeduction,
+        local_tax_rate AS localTaxRate,
+        apply_from     AS applyFrom,
+        apply_to       AS applyTo,
+        use_yn         AS useYn
+        FROM a_insurance_rate_band
+        WHERE insurance_type = #{insuranceType}
+        AND use_yn = 'Y'
+        AND apply_from <![CDATA[ <= ]]> #{stdDate}
+        AND (apply_to IS NULL OR apply_to >= #{stdDate})
+        AND wage_min <![CDATA[ <= ]]> #{wage}
+        AND (wage_max IS NULL OR wage_max >= #{wage})
+        ORDER BY
+        -- 회사별 요율이 있으면 우선 (NULL보다 먼저)
+        (CASE WHEN company_id IS NULL THEN 1 ELSE 0 END) ASC,
+        apply_from DESC,
+        wage_min DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectOverlappingBands" resultMap="InsuranceRateBandMap">
+        SELECT
+        id,
+        insurance_type,
+        company_id,
+        wage_min,
+        wage_max,
+        emp_rate,
+        er_rate,
+        base_min,
+        base_max,
+        premium_max,
+        ltc_rate_of_health,
+        apply_from,
+        apply_to,
+        use_yn
+        FROM a_insurance_rate_band
+        WHERE use_yn = 'Y'
+        AND insurance_type = #{insuranceType}
+        <!-- 자기 자신은 제외 (수정일 때) -->
+        <if test="id != null">
+            AND id != #{id}
+        </if>
+        <!-- 회사ID 동일 (NULL 정책은 회사 정책에 맞게 조정) -->
+        <if test="companyId != null">
+            AND (company_id = #{companyId})
+        </if>
+        <if test="companyId == null">
+            AND company_id IS NULL
+        </if>
+        <!-- 1) 날짜 구간 겹침 체크 -->
+        AND (
+        -- 기존.apply_from ~ 기존.apply_to
+        -- vs 신규.applyFrom ~ 신규.applyTo(NULL이면 무한대)
+        (
+        (apply_to IS NULL OR apply_to >= #{applyFrom})
+        AND (#{applyTo} IS NULL OR apply_from  <![CDATA[ <= ]]>  #{applyTo})
+        )
+        )
+        <!-- 2) 보수월액 구간 겹침 체크 -->
+        AND (
+        wage_min <![CDATA[ <= ]]> COALESCE(#{wageMax}, 999999999999)
+        AND
+        COALESCE(wage_max, 999999999999) >= #{wageMin}
+        )
+    </select>
+
+
+    <!-- ==========================
+       4대보험 등록
+  ========================== -->
+    <insert id="insert" parameterType="egovframework.payLoad.vo.InsuranceRateBand"  useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO a_insurance_rate_band (
+        insurance_type, company_id,
+        wage_min, wage_max,
+        emp_rate, er_rate,
+        base_min, base_max,
+        premium_max, ltc_rate_of_health,
+        apply_from, apply_to,
+        use_yn
+        ) VALUES (
+        #{insuranceType}, #{companyId},
+        #{wageMin}, #{wageMax},
+        #{empRate}, #{erRate},
+        #{baseMin}, #{baseMax},
+        #{premiumMax}, #{ltcRateOfHealth},
+        #{applyFrom}, #{applyTo},
+        #{useYn}
+        )
+    </insert>
+
+    <!-- ==========================
+      4대보험 수정
+ ========================== -->
+    <update id="update" parameterType="egovframework.payLoad.vo.InsuranceRateBand">
+        UPDATE a_insurance_rate_band
+        SET
+        insurance_type      = #{insuranceType},
+        company_id          = #{companyId},
+        wage_min            = #{wageMin},
+        wage_max            = #{wageMax},
+        emp_rate            = #{empRate},
+        er_rate             = #{erRate},
+        base_min            = #{baseMin},
+        base_max            = #{baseMax},
+        premium_max         = #{premiumMax},
+        ltc_rate_of_health  = #{ltcRateOfHealth},
+        apply_from          = #{applyFrom},
+        apply_to            = #{applyTo},
+        use_yn              = #{useYn}
+        WHERE id = #{id}
+    </update>
+
+
+    <!-- ==========================
+	     4대보험 삭제
+	========================== -->
+    <update id="softDelete" parameterType="long">
+        UPDATE a_insurance_rate_band
+        SET use_yn = 'N'
+        WHERE id = #{id}
+    </update>
+
+</mapper>

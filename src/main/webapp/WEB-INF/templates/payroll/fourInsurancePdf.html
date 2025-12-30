@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    @page { size: A4; margin: 12mm 10mm; }
+
+    body{
+      font-family:"Nanum Gothic","Malgun Gothic",Arial,sans-serif;
+      font-size:12px; color:#111;
+    }
+
+    /* ERP 느낌: 얇은 라인 + 연한 그레이 톤 */
+    .wrap{ border:1px solid #2f2f2f; }
+    .title{
+      border-bottom:1px solid #2f2f2f;
+      padding:10px 0;
+      text-align:center;
+      font-size:18px;
+      font-weight:800;
+      letter-spacing:0.2px;
+    }
+
+    table{ width:100%; border-collapse:collapse; }
+    th, td{ border:1px solid #8a8a8a; padding:6px 8px; }
+    th{ background:#f2f4f8; font-weight:800; text-align:center; }
+    td{ background:#fff; }
+
+    .meta td.label{ width:86px; background:#f7f8fb; font-weight:800; text-align:center; }
+    .meta td.value{ text-align:left; }
+
+    .section-h{
+      margin-top:10px;
+      border:1px solid #2f2f2f;
+      border-bottom:0;
+      background:#f2f4f8;
+      font-weight:800;
+      text-align:center;
+      padding:7px 0;
+    }
+
+    .two-col td{ vertical-align:top; padding:0; }
+    .inner th, .inner td{ border:1px solid #b1b1b1; }
+    .inner th{ background:#f7f8fb; }
+
+    .left{ text-align:left; }
+    .right{ text-align:right; }
+    .center{ text-align:center; }
+
+    .sum{ background:#fafbfe; font-weight:800; }
+    .netpay{ background:#eef3ff; font-weight:900; font-size:13px; }
+
+    .muted{ color:#666; font-size:11px; padding:8px 10px 10px; }
+
+    /* 숫자 컬럼 폭 고정(보기 좋게) */
+    .amt{ width:140px; }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <!-- 제목 -->
+  <div class="title">
+    <span th:text="${payYm}">급여명세서</span>
+  </div>
+
+  <!-- 인적/지급 정보 (현재 데이터가 없어서 기본은 '-' 표시) -->
+  <table class="meta">
+    <tr>
+      <td class="label">성명</td>
+      <td class="value" th:text="${empName != null ? empName : '-'}"></td>
+      <td class="label">사원번호</td>
+      <td class="value" th:text="${empNo != null ? empNo : '-'}"></td>
+    </tr>
+    <tr>
+      <td class="label">지급일</td>
+      <td class="value" th:text="${payDate != null ? payDate : stdDate}"></td>
+      <td class="label">회사ID</td>
+      <td class="value" th:text="${companyId != null ? companyId : '-'}"></td>
+    </tr>
+    <tr>
+      <td class="label">부서</td>
+      <td class="value" th:text="${deptName != null ? deptName : '-'}"></td>
+      <td class="label">직급</td>
+      <td class="value" th:text="${positionName != null ? positionName : '-'}"></td>
+    </tr>
+  </table>
+
+  <!-- 지급 및 공제 -->
+  <div class="section-h">지급 및 공제내역</div>
+
+  <table class="two-col">
+    <tr>
+      <!-- 지급 -->
+      <td style="width:50%;">
+        <table class="inner">
+          <thead>
+            <tr>
+              <th class="center">지급 항목</th>
+              <th class="center amt">금액</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="left">보수월액</td>
+              <td class="right"
+                  th:text="${result.monthlySalary != null ? #numbers.formatInteger(result.monthlySalary,0,'COMMA') : '-'} + ' 원'"></td>
+            </tr>
+
+            <!-- 현재 구조상 지급항목은 monthlySalary 단일(추후 기본급/수당 리스트 확장 가능) -->
+            <tr>
+              <td class="left sum">지급합계</td>
+              <td class="right sum"
+                  th:text="${result.monthlySalary != null ? #numbers.formatInteger(result.monthlySalary,0,'COMMA') : '-'} + ' 원'"></td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+
+      <!-- 공제(근로자) -->
+      <td style="width:50%;">
+        <table class="inner">
+          <thead>
+            <tr>
+              <th class="center">공제 항목</th>
+              <th class="center amt">금액</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="left">국민연금</td>
+              <td class="right" th:text="${result.pensionEmp != null ? #numbers.formatInteger(result.pensionEmp,0,'COMMA') : '-'} + ' 원'"></td>
+            </tr>
+            <tr>
+              <td class="left">건강보험</td>
+              <td class="right" th:text="${result.healthEmp != null ? #numbers.formatInteger(result.healthEmp,0,'COMMA') : '-'} + ' 원'"></td>
+            </tr>
+            <tr>
+              <td class="left">장기요양보험</td>
+              <td class="right" th:text="${result.ltcEmp != null ? #numbers.formatInteger(result.ltcEmp,0,'COMMA') : '-'} + ' 원'"></td>
+            </tr>
+            <tr>
+              <td class="left">고용보험</td>
+              <td class="right" th:text="${result.employmentEmp != null ? #numbers.formatInteger(result.employmentEmp,0,'COMMA') : '-'} + ' 원'"></td>
+            </tr>
+            <tr>
+              <td class="left">소득세</td>
+              <td class="right" th:text="${result.incomeTax != null ? #numbers.formatInteger(result.incomeTax,0,'COMMA') : '-'} + ' 원'"></td>
+            </tr>
+            <tr>
+              <td class="left">주민세(지방소득세)</td>
+              <td class="right" th:text="${result.localIncomeTax != null ? #numbers.formatInteger(result.localIncomeTax,0,'COMMA') : '-'} + ' 원'"></td>
+            </tr>
+
+            <tr>
+              <td class="left sum">공제합계</td>
+              <td class="right sum"
+                  th:text="${result.totalDeduction != null ? #numbers.formatInteger(result.totalDeduction,0,'COMMA') : '-'} + ' 원'"></td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- 실지급액 -->
+  <div class="section-h">합계</div>
+  <table>
+    <tr>
+      <th style="width:25%;">보수월액</th>
+      <th style="width:25%;">근로자 4대보험</th>
+      <th style="width:25%;">총 공제</th>
+      <th style="width:25%;">실지급액</th>
+    </tr>
+    <tr>
+      <td class="right"
+          th:text="${result.monthlySalary != null ? #numbers.formatInteger(result.monthlySalary,0,'COMMA') : '-'} + ' 원'"></td>
+      <td class="right"
+          th:text="${result.totalEmp != null ? #numbers.formatInteger(result.totalEmp,0,'COMMA') : '-'} + ' 원'"></td>
+      <td class="right"
+          th:text="${result.totalDeduction != null ? #numbers.formatInteger(result.totalDeduction,0,'COMMA') : '-'} + ' 원'"></td>
+      <td class="right netpay"
+          th:text="${result.netPay != null ? #numbers.formatInteger(result.netPay,0,'COMMA') : '-'} + ' 원'"></td>
+    </tr>
+  </table>
+
+  <div class="muted">
+    기준일: <span th:text="${stdDate}"></span>
+    <span th:if="${companyId != null}"> / 회사ID: <span th:text="${companyId}"></span></span>
+    <br/>
+    * 본 문서는 4대보험/세액 계산 결과 기반 출력물입니다.
+  </div>
+
+</div>
+</body>
+</html>
