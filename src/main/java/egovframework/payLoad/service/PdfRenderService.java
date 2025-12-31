@@ -26,8 +26,13 @@ public class PdfRenderService {
 
     private final ServletContext servletContext;
 
+    private volatile File cachedNanumFont;
+
 
     public byte[] renderFourInsurancePdf(FourInsuranceResult result, Integer companyId, String stdDate) {
+
+        long t0 = System.currentTimeMillis();
+
         try {
             // 1) Thymeleaf -> HTML
             Context ctx = new Context();
@@ -67,19 +72,39 @@ public class PdfRenderService {
             URL base = servletContext.getResource("/"); */
 
             // ✅ classpath 폰트를 임시파일로 꺼내서 등록 (File 기반 useFont 그대로 사용)
-            File fontFile = extractToTempFile("font/NanumGothic-Regular.ttf", "NanumGothic-Regular", ".ttf");
-            builder.useFont(fontFile, "Nanum Gothic");
+            //File fontFile = extractToTempFile("font/NanumGothic-Regular.ttf", "NanumGothic-Regular", ".ttf");
+            //builder.useFont(fontFile, "Nanum Gothic");
+
+            /*builder.useFont(
+                    () -> {
+                        try {
+                            return new ClassPathResource("font/NanumGothic-Regular.ttf").getInputStream();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    },
+                    "Nanum Gothic"
+            );*/
+
 
             // baseUri (상대경로 리소스가 없으면 크게 중요하지 않음)
-            String baseUri = "";
+            /*String baseUri = "";
             try {
                 URL base = servletContext.getResource("/");
                 if (base != null) baseUri = base.toExternalForm();
             } catch (Exception ignore) {
-            }
+            }*/
+
+            builder.useFastMode(); // ✅ 속도 개선
+            builder.useFont(getNanumFontOnce(), "Nanum Gothic");
+
+            // 외부 리소스가 없으면 baseUri 없어도 됨(about:blank로)
+            builder.withHtmlContent(html, "about:blank");
+
+
 
             //builder.withHtmlContent(html, base.toExternalForm());
-            builder.withHtmlContent(html, baseUri);
+            //builder.withHtmlContent(html, baseUri);
             builder.toStream(out);
             builder.run();
 
@@ -88,28 +113,36 @@ public class PdfRenderService {
 
         } catch (Exception e) {
             throw new RuntimeException("PDF 생성 실패", e);
+        }  finally {
+            System.out.println("[PDF] elapsed(ms)=" + (System.currentTimeMillis() - t0));
         }
     }
 
+
+    private File getNanumFontOnce() throws Exception {
+        File f = cachedNanumFont;
+        if (f != null && f.exists()) return f;
+
+        synchronized (this) {
+            if (cachedNanumFont != null && cachedNanumFont.exists()) return cachedNanumFont;
+            cachedNanumFont = extractToTempFile("font/NanumGothic-Regular.ttf", "NanumGothic", ".ttf");
+            // deleteOnExit()는 제거 권장 (서버 재기동 시 새로 생성되므로)
+            return cachedNanumFont;
+        }
+    }
+
+
     private File extractToTempFile(String classpath, String prefix, String suffix) throws Exception {
         ClassPathResource r = new ClassPathResource(classpath);
-
-        if (!r.exists()) {
-            throw new IllegalStateException("classpath 리소스(폰트) 없음:" + classpath);
-        }
+        if (!r.exists()) throw new IllegalStateException("classpath 폰트 없음: " + classpath);
 
         File temp = File.createTempFile(prefix, suffix);
-        temp.deleteOnExit();
-
         try (InputStream is = r.getInputStream();
              FileOutputStream fos = new FileOutputStream(temp)) {
             byte[] buf = new byte[8192];
             int n;
-            while ((n = is.read(buf)) > 0) {
-                fos.write(buf, 0, n);
-            }
+            while ((n = is.read(buf)) > 0) fos.write(buf, 0, n);
         }
-
         return temp;
     }
 
