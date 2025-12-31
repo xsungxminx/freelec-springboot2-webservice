@@ -109,6 +109,7 @@
 
         function downloadPdf(){
         	  var annualSalary = document.getElementById("annualSalary").value;
+        	  annualSalary = (annualSalary || "").replace(/,/g,'').trim(); // ✅ 추가
         	  var companyId    = document.getElementById("companyId").value;
         	  var stdDate      = document.getElementById("stdDate").value;
 
